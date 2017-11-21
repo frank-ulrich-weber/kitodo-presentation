@@ -151,6 +151,8 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
 		$imgAlt = '';
 
+		$noTitle = $this->pi_getLL('noTitle');
+
 		$metadata = $this->list[$number]['metadata'];
 
 		foreach ($this->metadata as $index_name => $metaConf) {
@@ -182,7 +184,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 					// Set fake title if still not present.
 					if (empty($value)) {
 
-						$value = $this->pi_getLL('noTitle');
+						$value = $noTitle;
 
 					}
 
@@ -367,6 +369,10 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
 		$content = '';
 
+		$noTitle = $this->pi_getLL('noTitle');
+
+		$highlight_word = preg_replace('/\s\s+/', ';', $this->list->metadata['searchString']);
+
 		foreach ($this->list[$number]['subparts'] as $subpart) {
 
 			$markerArray['###SUBMETADATA###'] = '';
@@ -406,7 +412,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 						// Set fake title if still not present.
 						if (empty($value)) {
 
-							$value = $this->pi_getLL('noTitle');
+							$value = $noTitle;
 
 						}
 
@@ -415,7 +421,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 						$additionalParams = array (
 							'id' => $subpart['uid'],
 							'page' => $subpart['page'],
-							'highlight_word' => preg_replace('/\s\s+/', ';', $this->list->metadata['searchString'])
+							'highlight_word' => $highlight_word
 						);
 
 						if(!empty($this->piVars['logicalPage'])) {
@@ -619,7 +625,10 @@ class tx_dlf_listview extends tx_dlf_plugin {
 		// Load metadata configuration.
 		$this->loadConfig();
 
-		for ($i = $this->piVars['pointer'] * $this->conf['limit'], $j = ($this->piVars['pointer'] + 1) * $this->conf['limit']; $i < $j; $i++) {
+		$i = $this->piVars['pointer'] * $this->conf['limit'];
+		$j = ($this->piVars['pointer'] + 1) * $this->conf['limit'];
+
+		for ($i, $j; $i < $j; $i++) {
 
 			if (empty($this->list[$i])) {
 
