@@ -195,6 +195,12 @@ class tx_dlf_listview extends tx_dlf_plugin {
 						'page' => $this->list[$number]['page']
 					);
 
+					if(!empty($this->piVars['logicalPage'])) {
+
+						$additionalParams['logicalPage'] = $this->piVars['logicalPage'];
+
+					}
+
 					$conf = array (
 						'useCacheHash' => 1,
 						'parameter' => $this->conf['targetPid'],
@@ -316,6 +322,12 @@ class tx_dlf_listview extends tx_dlf_plugin {
 			'forceAbsoluteUrl' => 1
 		);
 
+		if(!empty($this->piVars['logicalPage'])) {
+
+			$linkConf['additionalParams'] = \TYPO3\CMS\Core\Utility\GeneralUtility::implodeArrayForUrl($this->prefixId,array('logicalPage' => $this->piVars['logicalPage']), '', TRUE, FALSE);
+
+		}
+
 		// Build HTML form.
 		$sorting = '<form action="'.$this->cObj->typoLink_URL($linkConf).'" method="get"><div><input type="hidden" name="id" value="'.$GLOBALS['TSFE']->id.'" />';
 
@@ -432,6 +444,12 @@ class tx_dlf_listview extends tx_dlf_plugin {
 							'page' => $subpart['page'],
 							'highlight_word' => $highlight_word
 						);
+
+						if(!empty($this->piVars['logicalPage'])) {
+
+							$additionalParams['logicalPage'] = $this->piVars['logicalPage'];
+
+						}
 
 						$conf = array (
 							// we don't want cHash in case of search parameters
