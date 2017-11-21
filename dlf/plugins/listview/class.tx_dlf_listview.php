@@ -159,7 +159,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
 			$parsedValue = '';
 
-			$fieldwrap = $this->parseTS($metaConf['wrap']);
+			$fieldwrap = $this->getFieldWrap($index_name, $metaConf['wrap']);
 
 			do {
 
@@ -277,6 +277,27 @@ class tx_dlf_listview extends tx_dlf_plugin {
 	}
 
 	/**
+	 * Returns the fieldwrap of a metadatum
+	 *
+	 * @access	private
+	 *
+	 * @return	array		The parsed fildwrap
+	 */
+	private function getFieldWrap($index_name, $wrap) {
+
+		if(isset($this->fieldwrap[$index_name])) {
+
+			return $this->fieldwrap[$index_name];
+
+		} else {
+
+			return $this->fieldwrap[$index_name] = $this->parseTS($wrap);
+
+		}
+
+	}
+
+	/**
 	 * Renders sorting dialog
 	 *
 	 * @access	protected
@@ -387,7 +408,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
 				$parsedValue = '';
 
-				$fieldwrap = $this->parseTS($metaConf['wrap']);
+				$fieldwrap = $this->getFieldWrap($index_name, $metaConf['wrap']);
 
 				do {
 
