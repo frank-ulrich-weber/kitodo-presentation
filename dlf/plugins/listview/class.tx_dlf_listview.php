@@ -23,6 +23,14 @@ class tx_dlf_listview extends tx_dlf_plugin {
 	public $scriptRelPath = 'plugins/listview/class.tx_dlf_listview.php';
 
 	/**
+	 * This holds the field wrap of a metadata
+	 *
+	 * @var	tx_dlf_list
+	 * @access	private
+	 */
+	private $fieldWrap;
+
+	/**
 	 * This holds the list
 	 *
 	 * @var	tx_dlf_list
