@@ -423,6 +423,8 @@ class tx_dlf_collection extends tx_dlf_plugin {
         $list->reset();
 
         $list->add(array_values($toplevel));
+        
+        $listMetadata['options']['numberOfToplevelHits'] = count($list);
 
         $list->metadata = $listMetadata;
 

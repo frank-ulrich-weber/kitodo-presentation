@@ -64,7 +64,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
     protected function getPageBrowser() {
 
         // Get overall number of pages.
-        $maxPages = intval(ceil(count($this->list) / $this->conf['limit']));
+        $maxPages = intval(ceil($this->list->metadata['options']['numberOfToplevelHits'] / $this->conf['limit']));
 
         // Return empty pagebrowser if there is just one page.
         if ($maxPages < 2) {
@@ -378,7 +378,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
         // Add relevance sorting if this is a search result list.
         if ($this->list->metadata['options']['source'] == 'search') {
 
-            $sorting .= '<option value="relevance"'.(($this->list->metadata['options']['order'] == 'relevance') ? ' selected="selected"' : '').'>'.$this->pi_getLL('relevance', '', TRUE).'</option>';
+            $sorting .= '<option value="score"'.(($this->list->metadata['options']['order'] == 'score') ? ' selected="selected"' : '').'>'.$this->pi_getLL('relevance', '', TRUE).'</option>';
 
         }
 
@@ -641,27 +641,75 @@ class tx_dlf_listview extends tx_dlf_plugin {
         // Load the list.
         $this->list = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('tx_dlf_list');
 
-        // Sort the list if applicable.
-        if ((!empty($this->piVars['order']) && $this->piVars['order'] != $this->list->metadata['options']['order'])
-            || (isset($this->piVars['asc']) && $this->piVars['asc'] != $this->list->metadata['options']['order.asc'])) {
+        $currentEntry = $this->piVars['pointer'] * $this->conf['limit'];
+        $lastEntry = ($this->piVars['pointer'] + 1) * $this->conf['limit'];
 
-            // Order list by given field.
-            $this->list->sort($this->piVars['order'], (boolean) $this->piVars['asc']);
+        // Check if it's a list of database records or Solr documents.
+        if ((!empty($this->list->metadata['options']['source']) && $this->list->metadata['options']['source'] == 'collection')
+            && ((!empty($this->piVars['order']) && $this->piVars['order'] != $this->list->metadata['options']['order'])
+                || (isset($this->piVars['asc']) && $this->piVars['asc'] != $this->list->metadata['options']['order.asc']))) {
 
-            // Update list's metadata.
+                    // Order list by given field.
+                    $this->list->sort($this->piVars['order'], (boolean) $this->piVars['asc']);
+
+                    // Update list's metadata.
+                    $listMetadata = $this->list->metadata;
+
+                    $listMetadata['options']['order'] = $this->piVars['order'];
+
+                    $listMetadata['options']['order.asc'] = (boolean) $this->piVars['asc'];
+
+                    $this->list->metadata = $listMetadata;
+
+                    // Save updated list.
+                    $this->list->save();
+
+                    // Reset pointer.
+                    $this->piVars['pointer'] = 0;
+
+        } elseif (!empty($this->list->metadata['options']['source']) && $this->list->metadata['options']['source'] == 'search') {
+
+            // Update list's metadata
             $listMetadata = $this->list->metadata;
 
-            $listMetadata['options']['order'] = $this->piVars['order'];
+            // Sort the list if applicable.
+            if ((!empty($this->piVars['order']) && $this->piVars['order'] != $this->list->metadata['options']['order'])
+                || (isset($this->piVars['asc']) && $this->piVars['asc'] != $this->list->metadata['options']['order.asc'])) {
 
-            $listMetadata['options']['order.asc'] = (boolean) $this->piVars['asc'];
+                // Update list's metadata.
+                $listMetadata['options']['params']['sort'] = array ($this->piVars['order']."_sorting" => (boolean) $this->piVars['asc']?'asc':'desc');
 
+                $listMetadata['options']['order'] = $this->piVars['order'];
+                $listMetadata['options']['order.asc'] = (boolean) $this->piVars['asc'];
+
+                // Reset pointer.
+                $this->piVars['pointer'] = 0;
+
+            }
+
+            // Set some query parameters
+            $listMetadata['options']['params']['start'] = $currentEntry;
+            $listMetadata['options']['params']['rows'] = $lastEntry;
+
+            // Reset existing list
+            $this->list->reset();
+
+            // Set list metadata
             $this->list->metadata = $listMetadata;
+
+            // Perform seach
+            $this->list->search();
 
             // Save updated list.
             $this->list->save();
 
-            // Reset pointer.
-            $this->piVars['pointer'] = 0;
+            // Add list description
+            $listMetadata = $this->list->metadata;
+            $listMetadata['description'] = '<p class="tx-dlf-search-numHits">'.htmlspecialchars(sprintf($this->pi_getLL('hits', ''), $this->list->metadata['options']['numberOfHits'], $this->list->metadata['options']['numberOfToplevelHits'])).'</p>';
+            $this->list->metadata = $listMetadata;
+
+            $currentEntry = 0;
+            $lastEntry = $this->conf['limit'];
 
         }
 
@@ -681,7 +729,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
         $subpartArray['subentry'] = $this->cObj->getSubpart($this->template, '###SUBENTRY###');
 
         // Set some variable defaults.
-        if (!empty($this->piVars['pointer']) && (($this->piVars['pointer'] * $this->conf['limit']) + 1) <= count($this->list)) {
+        if (!empty($this->piVars['pointer']) && (($this->piVars['pointer'] * $this->conf['limit']) + 1) <= $this->list->metadata['options']['numberOfToplevelHits']) {
 
             $this->piVars['pointer'] = max(intval($this->piVars['pointer']), 0);
 
@@ -693,9 +741,6 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
         // Load metadata configuration.
         $this->loadConfig();
-
-        $currentEntry = $this->piVars['pointer'] * $this->conf['limit'];
-        $lastEntry = ($this->piVars['pointer'] + 1) * $this->conf['limit'];
 
         for ($currentEntry, $lastEntry; $currentEntry < $lastEntry; $currentEntry++) {
 
@@ -727,7 +772,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
         if ($currentEntry) {
 
-            $markerArray['###COUNT###'] = htmlspecialchars(sprintf($this->pi_getLL('count'), ($this->piVars['pointer'] * $this->conf['limit']) + 1, $currentEntry, count($this->list)));
+            $markerArray['###COUNT###'] = htmlspecialchars(sprintf($this->pi_getLL('count'), ($this->piVars['pointer'] * $this->conf['limit']) + 1, $currentEntry, $this->list->metadata['options']['numberOfToplevelHits']));
 
         } else {
 
