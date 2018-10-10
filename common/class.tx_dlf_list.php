@@ -13,6 +13,7 @@
  * List class 'tx_dlf_list' for the 'dlf' extension.
  *
  * @author	Sebastian Meyer <sebastian.meyer@slub-dresden.de>
+ * @author	Frank Ulrich Weber <fuw@zeutschel.de>
  * @package	TYPO3
  * @subpackage	tx_dlf
  * @access	public
@@ -267,12 +268,30 @@ class tx_dlf_list implements ArrayAccess, Countable, Iterator, \TYPO3\CMS\Core\S
 
                     // Set additional query parameters.
                     $params['start'] = 0;
-                    $params['rows'] = $this->solr->limit;
 
-                    // Set query.
-                    $params['query'] = 'uid:'.tx_dlf_solr::escapeQuery($record['uid']);
+                    // All results are needed, so set the limit unreachable high.
+                    $params['rows'] = 1000000000;
 
-                    // Perform search.
+                    // Take over existing filter queries.
+                    $params['filterquery'] = isset($this->metadata['options']['params']['filterquery']) ? $this->metadata['options']['params']['filterquery'] : array ();
+
+                    // Extend filter query to get all documents with the same uid.
+                    foreach ($params['filterquery'] as $key=>$value) {
+
+                        $params['filterquery'][$key] = array ('query' => $value['query'].' OR toplevel:true');
+
+                    }
+
+                    // Add filter query to get all documents with the required uid.
+                    $params['filterquery'][] = array ('query' => 'uid:'.tx_dlf_solr::escapeQuery($record['uid']));
+
+                    // Add sorting
+                    $params['sort'] = $this->metadata['options']['params']['sort'];
+
+                    // Set query 
+                    $params['query'] = $this->metadata['options']['select'].' OR toplevel:true';
+
+                    // Perform search for all documents with the same uid that either fit to the search or marked as toplevel.
                     $selectQuery = $this->solr->service->createSelect($params);
                     $result = $this->solr->service->select($selectQuery);
 
@@ -306,7 +325,10 @@ class tx_dlf_list implements ArrayAccess, Countable, Iterator, \TYPO3\CMS\Core\S
 
                             $record['metadata'] = $metadata;
 
-                        } elseif (isset($record['subparts'][$resArray->id])) {
+                        } else {
+
+                            $highlightedDoc = !empty($highlighting) ? $highlighting->getResult($resArray->id) : NULL;
+                            $highlight = !empty($highlightedDoc) ? $highlightedDoc->getField('fulltext')[0] : "";
 
                             $highlightedDoc = !empty($highlighting) ? $highlighting->getResult($resArray->id) : NULL;
                             $highlight = !empty($highlightedDoc) ? $highlightedDoc->getField('fulltext')[0] : "";
@@ -982,6 +1004,79 @@ class tx_dlf_list implements ArrayAccess, Countable, Iterator, \TYPO3\CMS\Core\S
     public function __wakeup() {
 
         $this->count = count($this->elements);
+
+    }
+
+    /**
+     * Processes a search request.
+     *
+     * @access	public
+     *
+     * @return	void
+     */
+    public function search() {
+
+        if ($this->solrConnect()) {
+
+            $toplevel = array ();
+
+            // Take over query parameters.
+            $params =  $this->metadata['options']['params'];
+
+            $params['filterquery'] = isset($params['filterquery']) ? $params['filterquery'] : array ();
+
+            // Set some query parameters.
+            $params['start'] = 0;
+            $params['rows'] = 0;
+
+            // Perform search to determine the total number of hits without fetching it.
+            $selectQuery = $this->solr->service->createSelect($params);
+            $results = $this->solr->service->select($selectQuery);
+
+            $this->metadata['options']['numberOfHits'] = $results->getNumFound();
+
+            // Restore query parameters
+            $params = $this->metadata['options']['params'];
+
+            $params['filterquery'] = isset($params['filterquery']) ? $params['filterquery'] : array ();
+
+            // Restrict the fields to the required ones.
+            $params['fields'] = 'uid,id';
+
+            // Extend filter query to get all documents with the same uids.
+            foreach ($params['filterquery'] as $key=>$value) {
+
+                $params['filterquery'][$key] = array ('query' => '{!join from=uid to=uid}'.$value['query']);
+
+            }
+
+            // Set filter query to just get toplevel documents.
+            $params['filterquery'][] = array ('query' => 'toplevel:true');
+
+            // Set join query to get all documents with the same uids.
+            $params['query'] = '{!join from=uid to=uid}'. $params['query'];
+    
+            // Perform search to determine the total number of toplevel hits and fetch the required rows.
+            $selectQuery = $this->solr->service->createSelect($params);
+            $results = $this->solr->service->select($selectQuery);
+
+            $this->metadata['options']['numberOfToplevelHits'] = $results->getNumFound();
+
+            // Process results.
+            foreach ($results as $doc) {
+
+                $toplevel[$doc->id] = array (
+                        'u' => $doc->uid,
+                        'h' => '',
+                        's' => '',
+                        'p' => array ()
+                    );
+
+            }
+
+            $this->add(array_values($toplevel));
+
+        }
 
     }
 

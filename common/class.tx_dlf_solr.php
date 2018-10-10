@@ -338,212 +338,6 @@ class tx_dlf_solr {
     }
 
     /**
-     * Processes a search request.
-     *
-     * @access	public
-     *
-     * @param	string		$query: The search query
-     *
-     * @return	tx_dlf_list		The result list
-     */
-    public function search($query = '') {
-
-        $toplevel = array ();
-
-        $checks = array ();
-
-        // Restrict the fields to the required ones
-        $this->params['fields'] = 'uid,id,toplevel';
-
-        // Get metadata configuration.
-        $result = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-            'tx_dlf_metadata.index_name AS index_name',
-            'tx_dlf_metadata',
-            'tx_dlf_metadata.is_sortable=1 AND tx_dlf_metadata.pid='.intval($this->cPid).tx_dlf_helper::whereClause('tx_dlf_metadata'),
-            '',
-            '',
-            ''
-        );
-
-        $sorting = array ();
-
-        while ($resArray = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result)) {
-
-            $sorting[$resArray['index_name']] = $resArray['index_name'].'_sorting';
-            $this->params['fields'] .= ','.$sorting[$resArray['index_name']];
-
-        }
-
-        // Set additional query parameters.
-        $this->params['start'] = 0;
-        $this->params['rows'] = $this->limit;
-
-        // Set query.
-        $this->params['query'] = $query;
-
-        // Perform search.
-        $selectQuery = $this->service->createSelect($this->params);
-        $results = $this->service->select($selectQuery);
-
-        $this->numberOfHits = min($results->getNumFound(), $this->limit);
-
-        // Keep track of relevance.
-        $i = 0;
-
-        // Process results.
-        foreach ($results as $doc) {
-
-            // Split toplevel documents from subparts.
-            if ($doc->toplevel) {
-
-                // Prepare document's metadata for sorting.
-                $docSorting = array ();
-
-                foreach ($sorting as $index_name => $solr_name) {
-
-                    if (!empty($doc->$solr_name)) {
-
-                        $docSorting[$index_name] = (is_array($doc->$solr_name) ? $doc->$solr_name[0] : $doc->$solr_name);
-
-                    }
-
-                }
-
-                // Preserve relevance ranking.
-                if (!empty($toplevel[$doc->uid]['s']['relevance'])) {
-
-                    $docSorting['relevance'] = $toplevel[$doc->uid]['s']['relevance'];
-
-                }
-
-                $toplevel[$doc->uid] = array (
-                    'u' => $doc->uid,
-                    'h' => '',
-                    's' => $docSorting,
-                    'p' => (!empty($toplevel[$doc->uid]['p']) ? $toplevel[$doc->uid]['p'] : array ())
-                );
-
-            } else {
-
-                $toplevel[$doc->uid]['p'][$doc->id] = array (
-                    'u' => $doc->id,
-                    'h' => ''
-                );
-
-                if (!in_array($doc->uid, $checks)) {
-
-                    $checks[] = $doc->uid;
-
-                }
-
-            }
-
-            // Add relevance to sorting values.
-            if (empty($toplevel[$doc->uid]['s']['relevance'])) {
-
-                $toplevel[$doc->uid]['s']['relevance'] = str_pad($i, 6, '0', STR_PAD_LEFT);
-
-            }
-
-            $i++;
-
-        }
-
-        // Check if the toplevel documents have metadata.
-        foreach ($checks as $check) {
-
-            if (empty($toplevel[$check]['u'])) {
-
-                // Get information for toplevel document.
-                $result = $GLOBALS['TYPO3_DB']->exec_SELECTquery(
-                    'tx_dlf_documents.uid AS uid,tx_dlf_documents.metadata_sorting AS metadata_sorting',
-                    'tx_dlf_documents',
-                    'tx_dlf_documents.uid='.intval($check).tx_dlf_helper::whereClause('tx_dlf_documents'),
-                    '',
-                    '',
-                    '1'
-                );
-
-                // Process results.
-                if ($GLOBALS['TYPO3_DB']->sql_num_rows($result)) {
-
-                    $resArray = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($result);
-
-                    // Prepare document's metadata for sorting.
-                    $sorting = unserialize($resArray['metadata_sorting']);
-
-                    if (!empty($sorting['type']) && \TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($sorting['type'])) {
-
-                        $sorting['type'] = tx_dlf_helper::getIndexName($sorting['type'], 'tx_dlf_structures', $this->cPid);
-
-                    }
-
-                    if (!empty($sorting['owner']) && \TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($sorting['owner'])) {
-
-                        $sorting['owner'] = tx_dlf_helper::getIndexName($sorting['owner'], 'tx_dlf_libraries', $this->cPid);
-
-                    }
-
-                    if (!empty($sorting['collection']) && \TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($sorting['collection'])) {
-
-                        $sorting['collection'] = tx_dlf_helper::getIndexName($sorting['collection'], 'tx_dlf_collections', $this->cPid);
-
-                    }
-
-                    // Preserve relevance ranking.
-                    if (!empty($toplevel[$check]['s']['relevance'])) {
-
-                        $sorting['relevance'] = $toplevel[$check]['s']['relevance'];
-
-                    }
-
-                    $toplevel[$check] = array (
-                        'u' => $resArray['uid'],
-                        'h' => '',
-                        's' => $sorting,
-                        'p' => $toplevel[$check]['p']
-                    );
-
-                } else {
-
-                    // Clear entry if there is no (accessible) toplevel document.
-                    unset ($toplevel[$check]);
-
-                }
-
-            }
-
-        }
-
-        // Save list of documents.
-        $list = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('tx_dlf_list');
-
-        $list->reset();
-
-        $list->add(array_values($toplevel));
-
-        // Set metadata for search.
-        $list->metadata = array (
-            'label' => '',
-            'description' => '',
-            'options' => array (
-                'source' => 'search',
-                'engine' => 'solr',
-                'select' => $query,
-                'userid' => 0,
-                'params' => $this->params,
-                'core' => $this->core,
-                'pid' => $this->cPid,
-                'order' => 'relevance',
-                'order.asc' => TRUE,
-            )
-        );
-
-        return $list;
-
-    }
-
-    /**
      * Processes a search request and returns the raw Apache Solr Documents.
      *
      * @access	public
@@ -624,6 +418,19 @@ class tx_dlf_solr {
 
         return $this->service;
 
+    }
+
+    /**
+     * This returns $this->core via __get()
+     *
+     * @access	protected
+     *
+     * @return	string
+     */
+    protected function _getCore() {
+        
+        return $this->core;
+        
     }
 
     /**
