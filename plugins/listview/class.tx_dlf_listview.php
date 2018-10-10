@@ -674,8 +674,8 @@ class tx_dlf_listview extends tx_dlf_plugin {
             $listMetadata = $this->list->metadata;
 
             // Sort the list if applicable.
-            if ((!empty($this->piVars['order']) && $this->piVars['order'] != $this->list->metadata['options']['order'])
-                || (isset($this->piVars['asc']) && $this->piVars['asc'] != $this->list->metadata['options']['order.asc'])) {
+            if ((!empty($this->piVars['order']) && $this->piVars['order'] != $listMetadata['options']['order'])
+                || (isset($this->piVars['asc']) && $this->piVars['asc'] != $listMetadata['options']['order.asc'])) {
 
                 // Update list's metadata.
                 $listMetadata['options']['params']['sort'] = array ($this->piVars['order']."_sorting" => (boolean) $this->piVars['asc']?'asc':'desc');
@@ -690,7 +690,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
             // Set some query parameters
             $listMetadata['options']['params']['start'] = $currentEntry;
-            $listMetadata['options']['params']['rows'] = $lastEntry;
+            $listMetadata['options']['params']['rows'] = $this->conf['limit'];
 
             // Search only if the query params have changed.
             if ($listMetadata['options']['params'] != $this->list->metadata['options']['params']) {
@@ -702,7 +702,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
                     if (TYPO3_DLOG) {
 
-                        \TYPO3\CMS\Core\Utility\GeneralUtility::devLog('[tx_dlf_search->main('.$content.', [data])] Apache Solr not available', $this->extKey, SYSLOG_SEVERITY_ERROR, $conf);
+                        \TYPO3\CMS\Core\Utility\GeneralUtility::devLog('[tx_dlf_listview->main('.$content.', [data])] Apache Solr not available', $this->extKey, SYSLOG_SEVERITY_ERROR, $conf);
 
                     }
 
@@ -711,7 +711,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
                 }
 
                 // Set search parameters.
-                $solr->cPid =  $this->list->metadata['options']['pid'];
+                $solr->cPid =  $listMetadata['options']['pid'];
                 $solr->params = $listMetadata['options']['params'];
 
                 // Perform search.
@@ -720,7 +720,6 @@ class tx_dlf_listview extends tx_dlf_plugin {
             }
 
             // Add list description
-            $listMetadata = $this->list->metadata;
             $listMetadata['description'] = '<p class="tx-dlf-search-numHits">'.htmlspecialchars(sprintf($this->pi_getLL('hits', ''), $this->list->metadata['options']['numberOfHits'], $this->list->metadata['options']['numberOfToplevelHits'])).'</p>';
             $this->list->metadata = $listMetadata;
 
@@ -791,7 +790,10 @@ class tx_dlf_listview extends tx_dlf_plugin {
 
         if ($currentEntry) {
 
-            $markerArray['###COUNT###'] = htmlspecialchars(sprintf($this->pi_getLL('count'), ($this->piVars['pointer'] * $this->conf['limit']) + 1, $currentEntry, $this->list->metadata['options']['numberOfToplevelHits']));
+            $currentEntry =  ($this->piVars['pointer'] * $this->conf['limit']) + 1;
+            $lastEntry = ($this->piVars['pointer'] * $this->conf['limit']) + $this->conf['limit'];
+
+            $markerArray['###COUNT###'] = htmlspecialchars(sprintf($this->pi_getLL('count'), $firstEntry, $lastEntry < $this->list->metadata['options']['numberOfToplevelHits'] ? $lastEntry : $this->list->metadata['options']['numberOfToplevelHits'], $this->list->metadata['options']['numberOfToplevelHits']));
 
         } else {
 
