@@ -660,33 +660,35 @@ class tx_dlf_search extends tx_dlf_plugin {
             $params['rows'] = 0;
             $params['sort'] = array ('score' => 'desc');
 
-            $list = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('tx_dlf_list');
+            // Instantiate search object.
+            $solr = tx_dlf_solr::getInstance($this->conf['solrcore']);
 
-            // Reset the existing list.
-            $list->reset();
+            if (!$solr->ready) {
 
-            // Set list metadata.
+                if (TYPO3_DLOG) {
+
+                    \TYPO3\CMS\Core\Utility\GeneralUtility::devLog('[tx_dlf_search->main('.$content.', [data])] Apache Solr not available', $this->extKey, SYSLOG_SEVERITY_ERROR, $conf);
+
+                }
+
+                return $content;
+
+            }
+
+            // Set search parameters.
+            $solr->cPid = $this->conf['pages'];
+            $solr->params = $params;
+
+            // Perform search.
+            $list = $solr->search();
+
             $list->metadata = array (
                 'label' => $label,
                 'thumbnail' => '',
                 'searchString' => $this->piVars['query'],
                 'fulltextSearch' => (!empty($this->piVars['fulltext']) ? '1' : '0'),
-                'options' => array (
-                    'source' => 'search',
-                    'engine' => 'solr',
-                    'select' => $query,
-                    'userid' => 0,
-                    'params' => $params,
-                    'core' => $solr->core,
-                    'pid' => $this->conf['pages'],
-                    'order' => 'score',
-                    'order.asc' => TRUE,
-
-                    )
+                'options' => $list->metadata['options']
             );
-
-            // Perform search
-            $list->search();
 
             $list->save();
 

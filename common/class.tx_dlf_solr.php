@@ -338,6 +338,101 @@ class tx_dlf_solr {
     }
 
     /**
+     * Processes a search request.
+     *
+     * @access	public
+     *
+     * @return	tx_dlf_list		The result list
+     */
+    public function search() {
+
+        $toplevel = array ();
+
+        // Take over query parameters.
+        $params =  $this->params;
+
+        $params['filterquery'] = isset($params['filterquery']) ? $params['filterquery'] : array ();
+
+        // Set some query parameters.
+        $params['start'] = 0;
+        $params['rows'] = 0;
+
+        // Perform search to determine the total number of hits without fetching it.
+        $selectQuery = $this->service->createSelect($params);
+        $results = $this->service->select($selectQuery);
+
+        $this->numberOfHits = $results->getNumFound();
+
+        // Restore query parameters
+        $params =  $this->params;
+
+        $params['filterquery'] = isset($params['filterquery']) ? $params['filterquery'] : array ();
+
+        // Restrict the fields to the required ones.
+        $params['fields'] = 'uid,id';
+
+        // Extend filter query to get all documents with the same uids.
+        foreach ($params['filterquery'] as $key=>$value) {
+
+            $params['filterquery'][$key] = array ('query' => '{!join from=uid to=uid}'.$value['query']);
+
+        }
+
+        // Set filter query to just get toplevel documents.
+        $params['filterquery'][] = array ('query' => 'toplevel:true');
+
+        // Set join query to get all documents with the same uids.
+        $params['query'] = '{!join from=uid to=uid}'. $params['query'];
+
+        // Perform search to determine the total number of toplevel hits and fetch the required rows.
+        $selectQuery = $this->service->createSelect($params);
+        $results = $this->service->select($selectQuery);
+
+        $numberOfToplevelHits = $results->getNumFound();
+
+        // Process results.
+        foreach ($results as $doc) {
+
+            $toplevel[$doc->id] = array (
+                'u' => $doc->uid,
+                'h' => '',
+                's' => '',
+                'p' => array ()
+            );
+
+        }
+
+        // Save list of documents.
+        $list = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('tx_dlf_list');
+
+        $list->reset();
+
+        $list->add(array_values($toplevel));
+
+        // Set metadata for search.
+        $list->metadata = array (
+            'label' => '',
+            'description' => '',
+            'options' => array (
+                'source' => 'search',
+                'engine' => 'solr',
+                'select' => $this->params['query'],
+                'userid' => 0,
+                'params' => $this->params,
+                'core' => $this->core,
+                'pid' => $this->cPid,
+                'order' => 'score',
+                'order.asc' => TRUE,
+                'numberOfHits' => $this->numberOfHits,
+                'numberOfToplevelHits' => $numberOfToplevelHits
+            )
+        );
+
+        return $list;
+
+    }
+
+    /**
      * Processes a search request and returns the raw Apache Solr Documents.
      *
      * @access	public
@@ -418,19 +513,6 @@ class tx_dlf_solr {
 
         return $this->service;
 
-    }
-
-    /**
-     * This returns $this->core via __get()
-     *
-     * @access	protected
-     *
-     * @return	string
-     */
-    protected function _getCore() {
-        
-        return $this->core;
-        
     }
 
     /**

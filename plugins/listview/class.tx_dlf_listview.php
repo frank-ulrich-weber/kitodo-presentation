@@ -692,22 +692,40 @@ class tx_dlf_listview extends tx_dlf_plugin {
             $listMetadata['options']['params']['start'] = $currentEntry;
             $listMetadata['options']['params']['rows'] = $lastEntry;
 
-            // Reset existing list
-            $this->list->reset();
+            // Search only if the query params have changed.
+            if ($listMetadata['options']['params'] != $this->list->metadata['options']['params']) {
 
-            // Set list metadata
-            $this->list->metadata = $listMetadata;
+                // Instantiate search object.
+                $solr = tx_dlf_solr::getInstance($this->list->metadata['options']['core']);
 
-            // Perform seach
-            $this->list->search();
+                if (!$solr->ready) {
 
-            // Save updated list.
-            $this->list->save();
+                    if (TYPO3_DLOG) {
+
+                        \TYPO3\CMS\Core\Utility\GeneralUtility::devLog('[tx_dlf_search->main('.$content.', [data])] Apache Solr not available', $this->extKey, SYSLOG_SEVERITY_ERROR, $conf);
+
+                    }
+
+                    return $content;
+
+                }
+
+                // Set search parameters.
+                $solr->cPid =  $this->list->metadata['options']['pid'];
+                $solr->params = $listMetadata['options']['params'];
+
+                // Perform search.
+                $this->list = $solr->search();
+
+            }
 
             // Add list description
             $listMetadata = $this->list->metadata;
             $listMetadata['description'] = '<p class="tx-dlf-search-numHits">'.htmlspecialchars(sprintf($this->pi_getLL('hits', ''), $this->list->metadata['options']['numberOfHits'], $this->list->metadata['options']['numberOfToplevelHits'])).'</p>';
             $this->list->metadata = $listMetadata;
+
+            // Save updated list.
+            $this->list->save();
 
             $currentEntry = 0;
             $lastEntry = $this->conf['limit'];
