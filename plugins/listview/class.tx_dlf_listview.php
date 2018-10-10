@@ -793,7 +793,7 @@ class tx_dlf_listview extends tx_dlf_plugin {
             $currentEntry =  ($this->piVars['pointer'] * $this->conf['limit']) + 1;
             $lastEntry = ($this->piVars['pointer'] * $this->conf['limit']) + $this->conf['limit'];
 
-            $markerArray['###COUNT###'] = htmlspecialchars(sprintf($this->pi_getLL('count'), $firstEntry, $lastEntry < $this->list->metadata['options']['numberOfToplevelHits'] ? $lastEntry : $this->list->metadata['options']['numberOfToplevelHits'], $this->list->metadata['options']['numberOfToplevelHits']));
+            $markerArray['###COUNT###'] = htmlspecialchars(sprintf($this->pi_getLL('count'), $currentEntry, $lastEntry < $this->list->metadata['options']['numberOfToplevelHits'] ? $lastEntry : $this->list->metadata['options']['numberOfToplevelHits'], $this->list->metadata['options']['numberOfToplevelHits']));
 
         } else {
 
