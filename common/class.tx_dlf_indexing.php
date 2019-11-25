@@ -542,7 +542,8 @@ class tx_dlf_indexing {
         // Get metadata for logical unit.
         $metadata = $doc->metadataArray[$logicalUnit['id']];
 
-        if (!empty($metadata)) {
+//        if (!empty($metadata)) {
+        if (!empty($metadata) && (\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($logicalUnit['points']) || $logicalUnit['points'] == "")) {
 
             // Load class.
             if (!class_exists('Apache_Solr_Document')) {

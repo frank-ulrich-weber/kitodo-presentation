@@ -117,7 +117,7 @@ class tx_dlf_search extends tx_dlf_plugin {
             // Get document's UID or parent ID.
             if ($this->doc->ready) {
 
-                return '<input type="hidden" name="'.$this->prefixId.'[id]" value="'.($this->doc->parentId > 0 ? $this->doc->parentId : $this->doc->uid).'" />';
+                return '<input type="hidden" name="'.$this->prefixId.'[id]" value="'.$this->doc->uid.'" />';
 
             }
 
