@@ -35,7 +35,9 @@ $EM_CONF[$_EXTKEY] = [
         ],
         'classmap' => [
             'vendor/solarium',
-            'vendor/symfony'
+            'vendor/symfony',
+            'vendor/php-iiif-prezi-reader',
+            'vendor/jsonpath'
         ]
     ]
 ];

@@ -366,6 +366,12 @@ class Solr
         $params['filterquery'] = isset($params['filterquery']) ? $params['filterquery'] : [];
         // Restrict the fields to the required ones.
         $params['fields'] = 'uid,id';
+        // Extend filter query to get all documents with the same uids.
+        foreach ($params['filterquery'] as $key => $value) {
+            if (isset($value['query'])) {
+                $params['filterquery'][$key]['query'] = '{!join from=uid to=uid}' . $value['query'];
+            }
+        }
         // Set filter query to just get toplevel documents.
         $params['filterquery'][] = ['query' => 'toplevel:true'];
         // Set join query to get all documents with the same uids.
@@ -376,7 +382,7 @@ class Solr
         $numberOfToplevelHits = $results->getNumFound();
         // Process results.
         foreach ($results as $doc) {
-            $toplevel[$doc->id] = [
+            $toplevel[] = [
                 'u' => $doc->uid,
                 'h' => '',
                 's' => '',

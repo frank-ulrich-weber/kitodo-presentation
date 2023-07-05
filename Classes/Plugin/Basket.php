@@ -92,7 +92,7 @@ class Basket extends \Kitodo\Dlf\Common\AbstractPlugin
                     $insertArray
                 );
         }
-        $basketData = $result->fetchAll();
+        $basketData = $result->fetch();
         $piVars = $this->piVars;
         // action add to basket
         if (
@@ -469,16 +469,16 @@ class Basket extends \Kitodo\Dlf\Common\AbstractPlugin
             $urlParams = str_replace("##docId##", $document->recordId, $urlParams);
             $urlParams = str_replace("##startpage##", intval($data['startpage']), $urlParams);
             if ($data['startpage'] != $data['endpage']) {
-                $urlParams = str_replace("##endpage##", $data['endpage'] === "" ? "" : intval($data['endpage']), $urlParams);
+                $urlParams = str_replace("##endpage##", empty($data['endpage']) ? "" : intval($data['endpage']), $urlParams);
             } else {
                 // remove parameter endpage
                 $urlParams = str_replace(",##endpage##", '', $urlParams);
             }
-            $urlParams = str_replace("##startx##", $data['startX'] === "" ? "" : intval($data['startX']), $urlParams);
-            $urlParams = str_replace("##starty##", $data['startY'] === "" ? "" : intval($data['startY']), $urlParams);
-            $urlParams = str_replace("##endx##", $data['endX'] === "" ? "" : intval($data['endX']), $urlParams);
-            $urlParams = str_replace("##endy##", $data['endY'] === "" ? "" : intval($data['endY']), $urlParams);
-            $urlParams = str_replace("##rotation##", $data['rotation'] === "" ? "" : intval($data['rotation']), $urlParams);
+            $urlParams = str_replace("##startx##", empty($data['startX']) ? "" : intval($data['startX']), $urlParams);
+            $urlParams = str_replace("##starty##", empty($data['startY']) ? "" : intval($data['startY']), $urlParams);
+            $urlParams = str_replace("##endx##", empty($data['endX']) ? "" : intval($data['endX']), $urlParams);
+            $urlParams = str_replace("##endy##", empty($data['endY']) ? "" : intval($data['endY']), $urlParams);
+            $urlParams = str_replace("##rotation##", empty($data['rotation']) ? "" : intval($data['rotation']), $urlParams);
             $downloadUrl = $this->conf['pdfgenerate'] . $urlParams;
             $title = $document->getTitle($id, true);
             if (empty($title)) {

@@ -280,7 +280,7 @@ final class MetsDocument extends Document
         $details['dmdId'] = (isset($attributes['DMDID']) ? $attributes['DMDID'] : '');
         $details['order'] = (isset($attributes['ORDER']) ? $attributes['ORDER'] : '');
         $details['label'] = (isset($attributes['LABEL']) ? $attributes['LABEL'] : '');
-        $details['orderlabel'] = (isset($attributes['ORDERLABEL']) ? $attributes['ORDERLABEL'] : '');
+        $details['orderlabel'] = (!empty($attributes['ORDERLABEL']) ? $attributes['ORDERLABEL'] : $details['label']);
         $details['contentIds'] = (isset($attributes['CONTENTIDS']) ? $attributes['CONTENTIDS'] : '');
         $details['volume'] = '';
         // Set volume information only if no label is set and this is the toplevel structure element.
@@ -932,7 +932,7 @@ final class MetsDocument extends Document
                 $this->physicalStructureInfo[$physSeq[0]]['dmdId'] = (isset($physNode[0]['DMDID']) ? (string) $physNode[0]['DMDID'] : '');
                 $this->physicalStructureInfo[$physSeq[0]]['order'] = (isset($physNode[0]['ORDER']) ? (string) $physNode[0]['ORDER'] : '');
                 $this->physicalStructureInfo[$physSeq[0]]['label'] = (isset($physNode[0]['LABEL']) ? (string) $physNode[0]['LABEL'] : '');
-                $this->physicalStructureInfo[$physSeq[0]]['orderlabel'] = (isset($physNode[0]['ORDERLABEL']) ? (string) $physNode[0]['ORDERLABEL'] : '');
+                $this->physicalStructureInfo[$physSeq[0]]['orderlabel'] = (!empty($physNode[0]['ORDERLABEL']) ? (string) $physNode[0]['ORDERLABEL'] : $this->physicalStructureInfo[$physSeq[0]]['label']);
                 $this->physicalStructureInfo[$physSeq[0]]['type'] = (string) $physNode[0]['TYPE'];
                 $this->physicalStructureInfo[$physSeq[0]]['contentIds'] = (isset($physNode[0]['CONTENTIDS']) ? (string) $physNode[0]['CONTENTIDS'] : '');
                 // Get the file representations from fileSec node.
@@ -949,7 +949,7 @@ final class MetsDocument extends Document
                     $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['dmdId'] = (isset($elementNode['DMDID']) ? (string) $elementNode['DMDID'] : '');
                     $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['order'] = (isset($elementNode['ORDER']) ? (string) $elementNode['ORDER'] : '');
                     $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['label'] = (isset($elementNode['LABEL']) ? (string) $elementNode['LABEL'] : '');
-                    $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['orderlabel'] = (isset($elementNode['ORDERLABEL']) ? (string) $elementNode['ORDERLABEL'] : '');
+                    $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['orderlabel'] = (!empty($elementNode['ORDERLABEL']) ? (string) $elementNode['ORDERLABEL'] : $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['label']);
                     $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['type'] = (string) $elementNode['TYPE'];
                     $this->physicalStructureInfo[$elements[(int) $elementNode['ORDER']]]['contentIds'] = (isset($elementNode['CONTENTIDS']) ? (string) $elementNode['CONTENTIDS'] : '');
                     // Get the file representations from fileSec node.
@@ -1035,7 +1035,7 @@ final class MetsDocument extends Document
                 ->execute();
 
             $allResults = $result->fetchAll();
-
+            
             if (count($allResults) == 1) {
                 $resArray = $allResults[0];
                 // Get desired thumbnail structure if not the toplevel structure itself.
@@ -1062,13 +1062,14 @@ final class MetsDocument extends Document
                     } elseif (!empty($this->physicalStructureInfo[$this->physicalStructure[1]]['files'][$fileGrpThumb])) {
                         $this->thumbnail = $this->getFileLocation($this->physicalStructureInfo[$this->physicalStructure[1]]['files'][$fileGrpThumb]);
                         break;
-                    }
-                }
+                    } 
+                }    
             } else {
                 Helper::devLog('No structure of type "' . $metadata['type'][0] . '" found in database', DEVLOG_SEVERITY_ERROR);
             }
             $this->thumbnailLoaded = true;
         }
+        
         return $this->thumbnail;
     }
 

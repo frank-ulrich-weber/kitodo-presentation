@@ -675,6 +675,14 @@ abstract class Document
                         $previousValueOfEntityLoader = libxml_disable_entity_loader(true);
                         // Load XML from file.
                         $rawTextXml = simplexml_load_string($file);
+                        
+                        if(!$rawTextXml)
+                        {
+                            Helper::devLog('Couldn\'t load fulltext file "' . $file . '" for structure node @ID "' . $id . '"', DEVLOG_SEVERITY_WARNING);
+                            
+                            return '';
+                        }
+                        
                         // Reset entity loader setting.
                         libxml_disable_entity_loader($previousValueOfEntityLoader);
                         // Reset libxml's error logging.

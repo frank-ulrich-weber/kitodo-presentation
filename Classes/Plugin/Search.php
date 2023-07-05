@@ -447,6 +447,10 @@ class Search extends \Kitodo\Dlf\Common\AbstractPlugin
             // Add filter query for faceting.
             if (!empty($this->piVars['fq'])) {
                 foreach ($this->piVars['fq'] as $filterQuery) {
+                    
+                    if($filterQuery == "!type:page")
+                        continue;
+                        
                     $params['filterquery'][]['query'] = $filterQuery;
                 }
             }
@@ -493,7 +497,7 @@ class Search extends \Kitodo\Dlf\Common\AbstractPlugin
             // Set some query parameters.
             $params['query'] = !empty($query) ? $query : '*';
             $params['start'] = 0;
-            $params['rows'] = 0;
+            $params['rows'] = 1;
             $params['sort'] = ['score' => 'desc'];
             // Instantiate search object.
             $solr = Solr::getInstance($this->conf['solrcore']);
@@ -586,18 +590,24 @@ class Search extends \Kitodo\Dlf\Common\AbstractPlugin
         if (empty($search['params']['filterquery'])) {
             $search['params']['filterquery'] = [];
         }
+        
+        $sort = isset($this->conf['sortingFacets']) ? $this->conf['sortingFacets'] : 'count';
+        
         foreach (array_keys($this->conf['facets']) as $field) {
             $search['params']['component']['facetset']['facet'][] = [
                 'type' => 'field',
                 'key' => $field,
                 'field' => $field,
                 'limit' => $this->conf['limitFacets'],
-                'sort' => isset($this->conf['sortingFacets']) ? $this->conf['sortingFacets'] : 'count'
+                'sort' => $sort
             ];
         }
         // Set additional query parameters.
         $search['params']['start'] = 0;
         $search['params']['rows'] = 0;
+        if(strpos($search['params']['query'], 'fulltext:(') === false) {
+            $search['params']['filterquery'][]['query'] = '!type:page';
+        }
         // Set query.
         $search['params']['query'] = $search['query'];
         // Perform search.
@@ -657,7 +667,8 @@ class Search extends \Kitodo\Dlf\Common\AbstractPlugin
                         break;
                     }
                 } else {
-                    break;
+                    if($sort == "count")
+                        break;
                 }
             }
             $menuArray[] = $entryArray;
