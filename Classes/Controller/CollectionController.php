@@ -194,11 +194,14 @@ class CollectionController extends AbstractController
         // get all metadata records to be shown in results
         $listedMetadata = $this->metadataRepository->findByIsListed(true);
 
+        // get all indexed metadata fileds
+        $indexedMetadata = $this->metadataRepository->findByIndexIndexed(true);
+
         // get all sortable metadata records
         $sortableMetadata = $this->metadataRepository->findByIsSortable(true);
 
         // get all documents of given collection
-        $solrResults = $this->documentRepository->findSolrByCollection($collection, $this->settings, $searchParams, $listedMetadata);
+        $solrResults = $this->documentRepository->findSolrByCollection($collection, $this->settings, $searchParams, $listedMetadata, $indexedMetadata);
 
         $this->view->assign('viewData', $this->viewData);
         $this->view->assign('documents', $solrResults);
