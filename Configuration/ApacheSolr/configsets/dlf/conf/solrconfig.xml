@@ -815,18 +815,18 @@
     </lst>
   </requestHandler>
   -->
-    <!-- Autocomplete Handler -->
-    <requestHandler name="/suggest" class="org.apache.solr.handler.component.SearchHandler">
-        <lst name="defaults">
-            <str name="spellcheck">true</str>
-            <str name="spellcheck.dictionary">suggest</str>
-            <str name="spellcheck.count">10</str>
-            <str name="spellcheck.onlyMorePopular">true</str>
-        </lst>
-        <arr name="components">
-            <str>suggest</str>
-        </arr>
-    </requestHandler>
+
+  <requestHandler name="/suggest" class="solr.SearchHandler"
+                  startup="lazy" >
+    <lst name="defaults">
+      <str name="suggest.dictionary">suggest</str>
+      <str name="suggest">true</str>
+      <str name="suggest.count">10</str>
+    </lst>
+    <arr name="components">
+      <str>suggest</str>
+    </arr>
+  </requestHandler>
 
   <!-- Search Components
 
@@ -875,14 +875,16 @@
     <searchComponent class="solrocr.OcrHighlightComponent" name="ocrHighlight" />
 
     <!-- Autocomplete Component -->
-    <searchComponent name="suggest" class="solr.SpellCheckComponent">
-        <lst name="spellchecker">
+    <searchComponent name="suggest" class="solr.SuggestComponent">
+        <lst name="suggester">
             <str name="name">suggest</str>
-            <str name="classname">org.apache.solr.spelling.suggest.Suggester</str>
-            <str name="lookupImpl">org.apache.solr.spelling.suggest.tst.TSTLookup</str>
-            <str name="buildOnCommit">true</str>
+            <str name="lookupImpl">FuzzyLookupFactory</str>
+            <str name="dictionaryImpl">DocumentDictionaryFactory</str>
             <str name="field">autocomplete</str>
-            <str name="queryAnalyzerFieldType">autocomplete</str>
+            <str name="suggestAnalyzerFieldType">autocomplete</str>
+            <str name="buildOnStartup">false</str>
+            <str name="buildOnCommit">false</str>
+            <str name="buildOnOptimize">false</str>
         </lst>
     </searchComponent>
   
