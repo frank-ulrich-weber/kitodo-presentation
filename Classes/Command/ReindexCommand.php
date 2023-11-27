@@ -79,7 +79,13 @@ class ReindexCommand extends BaseCommand
                 'a',
                 InputOption::VALUE_NONE,
                 'Reindex all documents on the given page.'
-            );
+            )
+            ->addOption(
+                'softCommit',
+                null,
+                InputOption::VALUE_NONE,
+                'If this option is set, documents are just added to the index with a soft commit.'
+                );
     }
 
     /**
@@ -177,9 +183,9 @@ class ReindexCommand extends BaseCommand
                 }
                 $document->setCurrentDocument($doc);
                 // save to database
-                $this->saveToDatabase($document);
+                $this->saveToDatabase($document, $input->getOption('softCommit'));
                 // add to index
-                Indexer::add($document, $this->documentRepository);
+                Indexer::add($document, $this->documentRepository, $input->getOption('softCommit'));
             }
             // Clear document registry to prevent memory exhaustion.
             AbstractDocument::clearRegistry();
