@@ -252,7 +252,7 @@ class DataHandler implements LoggerAwareInterface
                                     // Delete Solr document.
                                     $updateQuery = $solr->service->createUpdate();
                                     $updateQuery->addDeleteQuery('uid:' . (int) $id);
-                                    $updateQuery->addCommit();
+                                    $updateQuery->addCommit(false, null, null);
                                     $solr->service->update($updateQuery);
                                 }
                             } else {
@@ -331,7 +331,7 @@ class DataHandler implements LoggerAwareInterface
                             // Delete Solr document.
                             $updateQuery = $solr->service->createUpdate();
                             $updateQuery->addDeleteQuery('uid:' . (int) $id);
-                            $updateQuery->addCommit();
+                            $updateQuery->addCommit(false, null, null);
                             $solr->service->update($updateQuery);
                             if ($command == 'delete') {
                                 break;
