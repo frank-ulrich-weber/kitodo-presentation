@@ -75,12 +75,6 @@ class IndexCommand extends BaseCommand
                 'o',
                 InputOption::VALUE_OPTIONAL,
                 '[UID|index_name] of the Library which should be set as owner of the document.'
-            )
-            ->addOption(
-                'softCommit',
-                null,
-                InputOption::VALUE_NONE,
-                'If this option is set, documents are just added to the index by a soft commit.'
             );
     }
 
@@ -204,9 +198,9 @@ class IndexCommand extends BaseCommand
             }
             $document->setCurrentDocument($doc);
             // save to database
-            $this->saveToDatabase($document, $input->getOption('softCommit'));
+            $this->saveToDatabase($document);
             // add to index
-            Indexer::add($document, $this->documentRepository, $input->getOption('softCommit'));
+            Indexer::add($document, $this->documentRepository);
         }
 
         $io->success('All done!');

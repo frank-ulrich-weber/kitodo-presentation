@@ -29,8 +29,5 @@ return [
     ],
     'kitodo:reindex' => [
         'class' => Kitodo\Dlf\Command\ReindexCommand::class
-    ],
-    'kitodo:optimize' => [
-        'class' => Kitodo\Dlf\Command\OptimizeCommand::class
     ]
 ];
